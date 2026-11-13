@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var templateController: TemplateController!
   private var statusItem: NSStatusItem!
   private var pauseItem: NSMenuItem!
+  private var appearanceItems: [AppearanceMode: NSMenuItem] = [:]
   private var subscriptions = Set<AnyCancellable>()
   private var smokeDirectory: URL?
 
@@ -51,6 +52,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     addMenuItem("Text suchen …", action: #selector(showSearch), to: menu)
     menu.addItem(.separator())
     pauseItem = addMenuItem("Ersetzung pausieren", action: #selector(togglePause), to: menu)
+    let appearanceMenu = NSMenu()
+    for mode in AppearanceMode.allCases {
+      let item = addMenuItem(mode.title, action: #selector(selectAppearance(_:)), to: appearanceMenu)
+      item.representedObject = mode.rawValue
+      appearanceItems[mode] = item
+    }
+    let appearanceItem = NSMenuItem(title: "Darstellung", action: nil, keyEquivalent: "")
+    appearanceItem.submenu = appearanceMenu
+    menu.addItem(appearanceItem)
     menu.addItem(.separator())
     addMenuItem("Atext beenden", action: #selector(quit), to: menu)
     statusItem.menu = menu
@@ -58,6 +68,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       self?.pauseItem.state = paused ? .on : .off
       self?.statusItem.button?.toolTip =
         paused ? "Atext – pausiert" : (running ? "Atext – aktiv" : "Atext – Berechtigungen fehlen")
+    }.store(in: &subscriptions)
+    model.$appearance.sink { [weak self] current in
+      self?.appearanceItems.forEach { mode, item in item.state = mode == current ? .on : .off }
     }.store(in: &subscriptions)
     showManager()
 
@@ -89,6 +102,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         precondition(
           NSApp.mainMenu?.items.contains(where: { $0.title == "Bearbeiten" }) == true,
           "Standard text editing menu is missing")
+        let originalAppearance = UserDefaults.standard.string(forKey: AppearanceMode.defaultsKey)
+        for mode in [AppearanceMode.dark, .light, .system] {
+          model.appearance = mode
+          precondition(NSApp.appearance?.name == mode.nsAppearance?.name, "Appearance not applied")
+          precondition(appearanceItems[mode]?.state == .on, "Appearance menu not updated")
+        }
+        UserDefaults.standard.set(originalAppearance, forKey: AppearanceMode.defaultsKey)
         smokeTestTemplates()
       }
     }
@@ -187,6 +207,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   @objc private func togglePause() { model.paused.toggle() }
+  @objc private func selectAppearance(_ sender: NSMenuItem) {
+    guard let raw = sender.representedObject as? String,
+      let mode = AppearanceMode(rawValue: raw)
+    else { return }
+    model.appearance = mode
+  }
   @objc private func quit() { NSApp.terminate(nil) }
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }

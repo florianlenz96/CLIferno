@@ -1,0 +1,58 @@
+name: Build & Release (latest)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-latest
+  # Never cancel a run mid-publish; newer pushes queue behind it.
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tests
+        run: swift test
+
+      - name: App bauen (ad hoc signiert)
+        env:
+          ATEXT_SIGNING_IDENTITY: "-"
+          ATEXT_BUILD_VERSION: ${{ github.run_number }}
+        run: bash scripts/build-app.sh
+
+      - name: Smoke-Test
+        timeout-minutes: 2
+        continue-on-error: true
+        run: dist/Atext.app/Contents/MacOS/Atext --smoke-test
+
+      - name: Paketieren
+        run: |
+          ditto -c -k --keepParent dist/Atext.app dist/Atext.zip
+          shasum -a 256 dist/Atext.zip | awk '{print $1}' > dist/Atext.zip.sha256
+          cp scripts/setup-signing.sh scripts/install.sh dist/
+
+      - name: Rolling-Release "latest" aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: "Atext – neuester Stand (Build ${{ github.run_number }})"
+        run: |
+          notes="Automatisch gebaut aus ${GITHUB_SHA::7}. Installieren/aktualisieren: \`bash scripts/install.sh\`"
+          assets=(dist/Atext.zip dist/Atext.zip.sha256 dist/setup-signing.sh dist/install.sh)
+          if gh release view latest >/dev/null 2>&1; then
+            # Replace assets in place; the previous build stays downloadable until then.
+            gh release upload latest "${assets[@]}" --clobber
+            git tag -f latest "$GITHUB_SHA"
+            git push -f origin refs/tags/latest
+            gh release edit latest --title "$TITLE" --notes "$notes" --prerelease
+          else
+            gh release create latest "${assets[@]}" \
+              --prerelease --target "$GITHUB_SHA" --title "$TITLE" --notes "$notes"
+          fi

@@ -8,6 +8,13 @@ struct ManagerView: View {
   @State private var draft: Snippet?
   @State private var creatingNew = false
 
+  private static let versionText: String = {
+    let info = Bundle.main.infoDictionary
+    let version = info?["CFBundleShortVersionString"] as? String ?? "dev"
+    let build = info?["CFBundleVersion"] as? String ?? "–"
+    return "Version \(version) (Build \(build))"
+  }()
+
   private var results: [Snippet] { SnippetRules.search(model.snippets, query: query) }
   private var isDirty: Bool {
     guard let draft else { return false }
@@ -62,6 +69,8 @@ struct ManagerView: View {
       HStack {
         Text(model.status).font(.caption).foregroundStyle(.secondary)
         Spacer()
+        Text(Self.versionText).font(.caption).foregroundStyle(.tertiary)
+          .textSelection(.enabled)
         Button("Importieren", action: model.importSnippets).disabled(!model.storageAvailable)
         Button("Exportieren", action: model.exportSnippets).disabled(!model.storageAvailable)
       }
@@ -89,6 +98,15 @@ struct ManagerView: View {
       HStack {
         Label("Atext", systemImage: "text.cursor").font(.title2.bold())
         Spacer()
+        Picker("Darstellung", selection: $model.appearance) {
+          ForEach(AppearanceMode.allCases) { mode in
+            Label(mode.title, systemImage: mode.symbolName).tag(mode)
+          }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .help("Darstellung: Hell, Dunkel oder wie macOS")
         Toggle("Ersetzung pausieren", isOn: $model.paused).toggleStyle(.switch)
       }
       Text("Kürzel direkt tippen oder Ctrl + Option + Leertaste zum Suchen drücken.")

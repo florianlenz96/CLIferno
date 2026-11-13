@@ -15,6 +15,12 @@ final class AppModel: ObservableObject {
     didSet { monitor.isPaused = paused }
   }
   @Published var status = "Bereit"
+  @Published var appearance: AppearanceMode = .stored() {
+    didSet {
+      appearance.apply()
+      UserDefaults.standard.set(appearance.rawValue, forKey: AppearanceMode.defaultsKey)
+    }
+  }
   var hasUnsavedChanges = false
   private(set) var isPreparingTemplate = false
 
@@ -27,6 +33,7 @@ final class AppModel: ObservableObject {
 
   init(repository: SnippetRepository = .local, monitorPermissions: Bool = true) {
     self.repository = repository
+    appearance.apply()
     reload()
     monitor.isInsertionBusy = { [weak self] in
       guard let self else { return true }

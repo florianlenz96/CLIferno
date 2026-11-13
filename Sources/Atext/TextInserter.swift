@@ -7,6 +7,7 @@ enum InsertionError: LocalizedError {
   case secureInput
   case clipboard
   case keyboard
+  case focusChanged
 
   var errorDescription: String? {
     switch self {
@@ -18,19 +19,50 @@ enum InsertionError: LocalizedError {
     case .clipboard:
       return "Die Zwischenablage konnte nicht sicher gesichert werden. Es wurde nichts eingefügt."
     case .keyboard: return "macOS konnte die Tastatureingabe nicht erstellen."
+    case .focusChanged:
+      return "Das Eingabefeld hat sich geändert. Es wurde nichts eingefügt; bitte erneut auslösen."
     }
   }
 }
 
 final class TextInserter {
   static let eventMarker: Int64 = 0x41_5445_5854
+  // nspasteboard.org markers: clipboard managers must not record or display this content.
+  static let concealedType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
+  static let transientType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
+  // Long enough for a busy target to process Cmd+V before the old clipboard returns.
+  private static let restoreDelay: TimeInterval = 1.5
   private(set) var isBusy = false
   private var restoreWork: DispatchWorkItem?
   private var savedClipboard: [[(NSPasteboard.PasteboardType, Data)]]?
   private var ownedChangeCount: Int?
 
+  /// Writes text to the general pasteboard, flagged so clipboard history tools skip it.
+  @discardableResult
+  static func writeConcealed(_ text: String, transient: Bool) -> Bool {
+    let item = NSPasteboardItem()
+    guard item.setString(text, forType: .string),
+      item.setData(Data(), forType: concealedType)
+    else { return false }
+    if transient { item.setData(Data(), forType: transientType) }
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    return pasteboard.writeObjects([item])
+  }
+
+  /// The focused UI element of an application, if it exposes one via Accessibility.
+  static func focusedElement(of pid: pid_t) -> AXUIElement? {
+    var value: CFTypeRef?
+    let app = AXUIElementCreateApplication(pid)
+    guard AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &value)
+      == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID()
+    else { return nil }
+    return unsafeBitCast(value, to: AXUIElement.self)
+  }
+
   func insert(
     _ text: String, deleting count: Int, into targetPID: pid_t,
+    expectedFocus: AXUIElement? = nil,
     completion: @escaping (Result<Void, Error>) -> Void
   ) {
     guard !isBusy else { return }
@@ -47,6 +79,14 @@ final class TextInserter {
     else {
       completion(.failure(InsertionError.noTarget))
       return
+    }
+    // Never edit a different field (e.g. another tab) than the one the trigger was typed in.
+    if let expectedFocus {
+      guard let current = Self.focusedElement(of: targetPID), CFEqual(current, expectedFocus)
+      else {
+        completion(.failure(InsertionError.focusChanged))
+        return
+      }
     }
     guard let source = CGEventSource(stateID: .privateState) else {
       completion(.failure(InsertionError.keyboard))
@@ -83,8 +123,7 @@ final class TextInserter {
       snapshot.append(values)
     }
     savedClipboard = snapshot
-    pasteboard.clearContents()
-    guard pasteboard.setString(text, forType: .string) else {
+    guard Self.writeConcealed(text, transient: true) else {
       ownedChangeCount = pasteboard.changeCount
       restoreClipboard()
       completion(.failure(InsertionError.clipboard))
@@ -92,8 +131,9 @@ final class TextInserter {
     }
     ownedChangeCount = pasteboard.changeCount
     isBusy = true
+    // Deliver only to the verified target process, not to whatever window is focused later.
     for event in events {
-      event.post(tap: .cgSessionEventTap)
+      event.postToPid(targetPID)
     }
     // Leave time for the target to process Cmd+V; never overwrite a newer user copy.
     let work = DispatchWorkItem { [weak self] in
@@ -102,7 +142,7 @@ final class TextInserter {
       completion(.success(()))
     }
     restoreWork = work
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: work)
+    DispatchQueue.main.asyncAfter(deadline: .now() + Self.restoreDelay, execute: work)
   }
 
   func restoreClipboard() {

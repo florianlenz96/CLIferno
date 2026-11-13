@@ -19,6 +19,11 @@ cp Resources/Info.plist "$app_path/Contents/Info.plist"
 if [[ -n "${ATEXT_BUILD_VERSION:-}" ]]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $ATEXT_BUILD_VERSION" "$app_path/Contents/Info.plist"
 fi
-codesign --force --sign "$identity" --identifier dev.local.atext "$app_path"
+# Hardened Runtime: blocks DYLD_INSERT_LIBRARIES injection into the Accessibility-trusted process.
+codesign --force --options runtime --sign "$identity" --identifier dev.local.atext "$app_path"
 codesign --verify --deep --strict "$app_path"
+if ! codesign --display --verbose=2 "$app_path" 2>&1 | grep -q 'flags=.*runtime'; then
+    printf 'Hardened Runtime ist nicht aktiv. Abbruch.\n' >&2
+    exit 1
+fi
 printf '\nApp erstellt: %s\nStarten: open "%s"\n' "$app_path" "$app_path"

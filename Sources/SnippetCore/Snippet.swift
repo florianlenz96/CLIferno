@@ -26,6 +26,7 @@ public enum SnippetValidationError: LocalizedError, Equatable {
   case emptyContent
   case duplicateID
   case conflictingTrigger(String)
+  case unsafeCharacter(field: String, codePoint: String)
 
   public var errorDescription: String? {
     switch self {
@@ -41,11 +42,36 @@ public enum SnippetValidationError: LocalizedError, Equatable {
     case .conflictingTrigger(let trigger):
       return
         "Das Kürzel überschneidet sich mit \(trigger). Kürzel dürfen nicht identisch oder der Anfang eines anderen Kürzels sein."
+    case .unsafeCharacter(let field, let codePoint):
+      return
+        "\(field) enthält das unsichtbare Steuerzeichen \(codePoint). Solche Zeichen können eingefügte Befehle verschleiern und sind nicht erlaubt."
     }
   }
 }
 
 public enum SnippetRules {
+  /// Invisible characters that can hide or reorder text (terminal escapes, Trojan-Source bidi
+  /// overrides, zero-width spaces). Tab, line feed and carriage return stay allowed; U+200D
+  /// (zero-width joiner) stays allowed because emoji sequences need it.
+  static func firstUnsafeScalar(in text: String) -> Unicode.Scalar? {
+    text.unicodeScalars.first { scalar in
+      switch scalar.value {
+      case 0x09, 0x0A, 0x0D: return false
+      case 0x00...0x1F, 0x7F...0x9F: return true  // C0/C1 controls incl. ESC
+      case 0x061C, 0x200E, 0x200F, 0x202A...0x202E, 0x2066...0x2069: return true  // bidi
+      case 0x200B, 0x2060, 0xFEFF: return true  // zero-width / BOM
+      default: return false
+      }
+    }
+  }
+
+  private static func checkCharacters(_ text: String, field: String) throws {
+    if let scalar = firstUnsafeScalar(in: text) {
+      throw SnippetValidationError.unsafeCharacter(
+        field: field, codePoint: String(format: "U+%04X", scalar.value))
+    }
+  }
+
   public static func validate(_ snippet: Snippet, among snippets: [Snippet]) throws {
     guard !snippet.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
       throw SnippetValidationError.emptyTitle
@@ -59,6 +85,8 @@ public enum SnippetRules {
       throw SnippetValidationError.invalidTrigger
     }
     guard !snippet.content.isEmpty else { throw SnippetValidationError.emptyContent }
+    try checkCharacters(snippet.title, field: "Der Name")
+    try checkCharacters(snippet.content, field: "Der einzufügende Text")
     for other in snippets where other.id != snippet.id {
       if snippet.trigger.hasPrefix(other.trigger) || other.trigger.hasPrefix(snippet.trigger) {
         throw SnippetValidationError.conflictingTrigger(other.trigger)

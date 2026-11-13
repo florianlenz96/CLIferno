@@ -60,8 +60,12 @@ if ! security find-identity -v -p codesigning | grep -F "\"$identity\"" >/dev/nu
         bash "$work/setup-signing.sh"
     fi
 fi
-codesign --force --sign "$identity" --identifier dev.local.atext "$app"
+codesign --force --options runtime --sign "$identity" --identifier dev.local.atext "$app"
 codesign --verify --deep --strict "$app"
+if ! codesign --display --verbose=2 "$app" 2>&1 | grep -q 'flags=.*runtime'; then
+    printf 'Hardened Runtime ist nicht aktiv. Abbruch.\n' >&2
+    exit 1
+fi
 
 if pgrep -x Atext >/dev/null; then
     printf '→ Laufendes Atext wird beendet …\n'

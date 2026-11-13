@@ -121,4 +121,59 @@ final class SnippetCoreTests: XCTestCase {
       }
     }
   }
+
+  func testHiddenControlAndBidiCharactersAreRejected() {
+    for content in [
+      "ls\u{1B}[201~\nrm -rf ~",  // ESC: breaks out of bracketed paste
+      "echo ok\u{202E}txt.hs",  // right-to-left override (Trojan Source)
+      "git\u{200B}status",  // zero-width space
+      "a\u{0007}b",  // BEL
+      "a\u{0085}b",  // C1 control
+    ] {
+      let unsafe = Snippet(title: "Test", trigger: ";test", content: content)
+      XCTAssertThrowsError(try SnippetRules.validate(unsafe, among: []), content) { error in
+        guard case SnippetValidationError.unsafeCharacter = error else {
+          return XCTFail("Unexpected error: \(error)")
+        }
+      }
+    }
+    let hiddenTitle = Snippet(title: "Harmlos\u{2066}", trigger: ";test", content: "ok")
+    XCTAssertThrowsError(try SnippetRules.validate(hiddenTitle, among: []))
+    let allowed = Snippet(
+      title: "Erlaubt", trigger: ";ok", content: "a\tb\r\nc\nÄ 👨\u{200D}💻 €")
+    XCTAssertNoThrow(try SnippetRules.validate(allowed, among: []))
+  }
+
+  func testImportOfUnsafeOrOversizedFilesIsRejected() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let url = directory.appendingPathComponent("import.json")
+    let id = UUID().uuidString
+    try Data(
+      #"{"version":1,"snippets":[{"id":"\#(id)","title":"x","trigger":";x","content":"ls\u001b[201~"}]}"#
+        .utf8
+    ).write(to: url)
+    XCTAssertThrowsError(try SnippetRepository(fileURL: url).load())
+    try Data(count: SnippetRepository.maxFileSize + 1).write(to: url)
+    XCTAssertThrowsError(try SnippetRepository(fileURL: url).load()) { error in
+      guard case RepositoryError.fileTooLarge = error else {
+        return XCTFail("Unexpected error: \(error)")
+      }
+    }
+  }
+
+  func testLocalStorageFolderIsRestrictedEvenIfItExisted() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    try FileManager.default.createDirectory(
+      at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o755])
+    let repository = SnippetRepository(
+      fileURL: directory.appendingPathComponent("snippets.json"), restrictsDirectory: true)
+    try repository.save([snippet])
+    let folder = try FileManager.default.attributesOfItem(atPath: directory.path)
+    let file = try FileManager.default.attributesOfItem(atPath: repository.fileURL.path)
+    XCTAssertEqual((folder[.posixPermissions] as? NSNumber)?.intValue, 0o700)
+    XCTAssertEqual((file[.posixPermissions] as? NSNumber)?.intValue, 0o600)
+  }
 }

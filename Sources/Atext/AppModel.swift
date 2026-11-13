@@ -125,6 +125,8 @@ final class AppModel: ObservableObject {
   func insert(_ snippet: Snippet, deleting count: Int = 0, targetPID: pid_t) {
     guard !isPreparingTemplate, !inserter.isBusy else { return }
     let template = SnippetTemplate(snippet.content)
+    // Remember the field the trigger was typed in; insertion is refused if focus moved.
+    let focus = TextInserter.focusedElement(of: targetPID)
     if !template.placeholders.isEmpty {
       guard let target = NSRunningApplication(processIdentifier: targetPID) else {
         error = InsertionError.noTarget.localizedDescription
@@ -132,16 +134,19 @@ final class AppModel: ObservableObject {
       }
       prepare(snippet, target: target, actionTitle: "Einfügen") { [weak self] text in
         guard let self, let text else { return }
-        self.insertRendered(text, title: snippet.title, deleting: count, targetPID: targetPID)
+        self.insertRendered(
+          text, title: snippet.title, deleting: count, targetPID: targetPID, focus: focus)
       }
     } else if let text = try? template.render(values: [:]) {
-      insertRendered(text, title: snippet.title, deleting: count, targetPID: targetPID)
+      insertRendered(text, title: snippet.title, deleting: count, targetPID: targetPID, focus: focus)
     }
   }
 
-  private func insertRendered(_ text: String, title: String, deleting count: Int, targetPID: pid_t)
-  {
-    inserter.insert(text, deleting: count, into: targetPID) { [weak self] result in
+  private func insertRendered(
+    _ text: String, title: String, deleting count: Int, targetPID: pid_t, focus: AXUIElement?
+  ) {
+    inserter.insert(text, deleting: count, into: targetPID, expectedFocus: focus) {
+      [weak self] result in
       switch result {
       case .success: self?.status = "Einfügen gesendet: \(title)"
       case .failure(let error): self?.error = error.localizedDescription
@@ -179,8 +184,10 @@ final class AppModel: ObservableObject {
   }
 
   private func copyRendered(_ text: String, title: String) {
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.setString(text, forType: .string)
+    guard TextInserter.writeConcealed(text, transient: false) else {
+      error = InsertionError.clipboard.localizedDescription
+      return
+    }
     status = "Kopiert: \(title)"
   }
 
@@ -188,6 +195,8 @@ final class AppModel: ObservableObject {
     let panel = NSSavePanel()
     panel.allowedContentTypes = [.json]
     panel.nameFieldStringValue = "atext-snippets.json"
+    panel.message =
+      "Der Export ist unverschlüsselt. Enthält ein Eintrag Zugangsdaten, die Datei nicht weitergeben."
     guard panel.runModal() == .OK, let url = panel.url else { return }
     do { try SnippetRepository(fileURL: url).save(snippets) } catch {
       self.error = error.localizedDescription
@@ -204,7 +213,8 @@ final class AppModel: ObservableObject {
       let alert = NSAlert()
       alert.messageText = "Einträge aus Sicherung übernehmen?"
       alert.informativeText =
-        "Die \(snippets.count) vorhandenen Einträge werden durch \(incoming.count) Einträge ersetzt. Exportiere sie zuerst, wenn du sie behalten möchtest."
+        "Die \(snippets.count) vorhandenen Einträge werden durch \(incoming.count) Einträge ersetzt. Exportiere sie zuerst, wenn du sie behalten möchtest.\n\nPrüfe den vollständigen Inhalt unten: Importierte Texte werden später ungeprüft eingefügt, Zeilenumbrüche (↵) können im Terminal Befehle ausführen."
+      alert.accessoryView = Self.importPreview(incoming)
       alert.addButton(withTitle: "Ersetzen")
       alert.addButton(withTitle: "Abbrechen")
       guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -212,6 +222,30 @@ final class AppModel: ObservableObject {
     } catch {
       self.error = error.localizedDescription
     }
+  }
+
+  /// Full, untruncated listing so hidden commands in imported snippets are visible.
+  private static func importPreview(_ snippets: [Snippet]) -> NSView {
+    let listing = snippets.map { snippet in
+      let lines = snippet.content.components(separatedBy: "\n")
+      let marker = lines.count > 1 ? "  ⚠︎ \(lines.count) Zeilen" : ""
+      let body = lines.map { "    " + $0 }.joined(separator: " ↵\n")
+      return "\(snippet.trigger)  –  \(snippet.title)\(marker)\n\(body)"
+    }.joined(separator: "\n\n")
+    let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 460, height: 240))
+    scroll.hasVerticalScroller = true
+    scroll.borderType = .bezelBorder
+    let text = NSTextView(frame: NSRect(origin: .zero, size: scroll.contentSize))
+    text.isEditable = false
+    text.isVerticallyResizable = true
+    text.minSize = NSSize(width: 0, height: scroll.contentSize.height)
+    text.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
+    text.textContainer?.widthTracksTextView = true
+    text.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+    text.string = listing
+    text.autoresizingMask = [.width]
+    scroll.documentView = text
+    return scroll
   }
 
   func shutdown() {

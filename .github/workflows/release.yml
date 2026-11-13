@@ -1,0 +1,50 @@
+name: Build & Release (latest)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-latest
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tests
+        run: swift test
+
+      - name: App bauen (ad hoc signiert)
+        env:
+          ATEXT_SIGNING_IDENTITY: "-"
+          ATEXT_BUILD_VERSION: ${{ github.run_number }}
+        run: bash scripts/build-app.sh
+
+      - name: Smoke-Test
+        timeout-minutes: 2
+        continue-on-error: true
+        run: dist/Atext.app/Contents/MacOS/Atext --smoke-test
+
+      - name: Paketieren
+        run: |
+          ditto -c -k --keepParent dist/Atext.app dist/Atext.zip
+          shasum -a 256 dist/Atext.zip | awk '{print $1}' > dist/Atext.zip.sha256
+          cp scripts/setup-signing.sh scripts/install.sh dist/
+
+      - name: Rolling-Release "latest" aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest \
+            dist/Atext.zip dist/Atext.zip.sha256 dist/setup-signing.sh dist/install.sh \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Atext – neuester Stand (Build ${{ github.run_number }})" \
+            --notes "Automatisch gebaut aus ${GITHUB_SHA::7}. Installieren/aktualisieren: \`bash scripts/install.sh\`"

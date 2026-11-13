@@ -68,18 +68,28 @@ if ! codesign --display --verbose=2 "$app" 2>&1 | grep -q 'flags=.*runtime'; the
 fi
 
 if pgrep -x Atext >/dev/null; then
+    # Nur regulär beenden: Atext fragt bei ungespeicherten Änderungen nach und stellt die
+    # Zwischenablage wieder her. Wird das Beenden abgelehnt, bricht das Update ab.
     printf '→ Laufendes Atext wird beendet …\n'
-    osascript -e 'tell application id "dev.local.atext" to quit' 2>/dev/null || pkill -x Atext || true
-    for _ in {1..20}; do pgrep -x Atext >/dev/null || break; sleep 0.25; done
+    osascript -e 'tell application id "dev.local.atext" to quit' >/dev/null 2>&1 || true
+    for _ in {1..60}; do pgrep -x Atext >/dev/null || break; sleep 0.5; done
+    if pgrep -x Atext >/dev/null; then
+        printf 'Atext läuft noch (Beenden abgebrochen?). Bitte Änderungen speichern, Atext beenden und erneut ausführen.\n' >&2
+        exit 1
+    fi
 fi
 
-if [[ ! -w "$install_dir" ]]; then
+if ! mkdir -p "$install_dir" 2>/dev/null || [[ ! -w "$install_dir" ]]; then
+    printf 'Kein Schreibrecht für %s, installiere nach ~/Applications.\n' "$install_dir"
     install_dir="$HOME/Applications"
     mkdir -p "$install_dir"
 fi
 target="$install_dir/Atext.app"
+staged="$install_dir/.Atext.app.new"
+rm -rf "$staged"
+ditto "$app" "$staged"
 rm -rf "$target"
-ditto "$app" "$target"
+mv "$staged" "$target"
 
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$target/Contents/Info.plist")"
 build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$target/Contents/Info.plist")"

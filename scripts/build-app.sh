@@ -22,7 +22,9 @@ fi
 # Hardened Runtime: blocks DYLD_INSERT_LIBRARIES injection into the Accessibility-trusted process.
 codesign --force --options runtime --sign "$identity" --identifier dev.local.atext "$app_path"
 codesign --verify --deep --strict "$app_path"
-if ! codesign --display --verbose=2 "$app_path" 2>&1 | grep -q 'flags=.*runtime'; then
+# Capture first: with pipefail, `codesign | grep -q` fails via SIGPIPE once grep exits early.
+signature_info="$(codesign --display --verbose=2 "$app_path" 2>&1)"
+if ! grep -q 'flags=.*runtime' <<<"$signature_info"; then
     printf 'Hardened Runtime ist nicht aktiv. Abbruch.\n' >&2
     exit 1
 fi

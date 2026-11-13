@@ -62,7 +62,9 @@ if ! security find-identity -v -p codesigning | grep -F "\"$identity\"" >/dev/nu
 fi
 codesign --force --options runtime --sign "$identity" --identifier dev.local.atext "$app"
 codesign --verify --deep --strict "$app"
-if ! codesign --display --verbose=2 "$app" 2>&1 | grep -q 'flags=.*runtime'; then
+# Capture first: with pipefail, `codesign | grep -q` fails via SIGPIPE once grep exits early.
+signature_info="$(codesign --display --verbose=2 "$app" 2>&1)"
+if ! grep -q 'flags=.*runtime' <<<"$signature_info"; then
     printf 'Hardened Runtime ist nicht aktiv. Abbruch.\n' >&2
     exit 1
 fi

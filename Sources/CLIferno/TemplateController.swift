@@ -47,7 +47,7 @@ final class TemplateController: NSObject, NSWindowDelegate {
       styleMask: [.titled, .closable, .fullSizeContentView],
       backing: .buffered, defer: false)
     self.panel = panel
-    panel.title = "Atext – Parameter"
+    panel.title = "CLIferno – Parameter"
     panel.isReleasedWhenClosed = false
     panel.isFloatingPanel = true
     panel.level = .floating
@@ -180,7 +180,7 @@ private struct TemplateView: View {
         Image(systemName: "info.circle")
           .foregroundStyle(.secondary)
           .help(
-            "Jeder Parameter wird einmal abgefragt. Werte werden unverändert eingesetzt, nicht für die Shell maskiert. Atext führt keine Befehle aus; Zeilenumbrüche können im Terminal Befehle auslösen."
+            "Jeder Parameter wird einmal abgefragt. Werte werden unverändert eingesetzt, nicht für die Shell maskiert. CLIferno führt keine Befehle aus; Zeilenumbrüche können im Terminal Befehle auslösen."
           )
         Spacer()
         Button("Abbrechen", action: cancel).keyboardShortcut(.cancelAction)

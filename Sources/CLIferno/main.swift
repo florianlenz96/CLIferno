@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let smokeTest = CommandLine.arguments.contains("--smoke-test")
     if smokeTest {
       let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
-        "Atext-smoke-\(UUID().uuidString)")
+        "CLIferno-smoke-\(UUID().uuidString)")
       smokeDirectory = directory
       model = AppModel(
         repository: SnippetRepository(fileURL: directory.appendingPathComponent("snippets.json")),
@@ -39,14 +39,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       contentRect: NSRect(x: 0, y: 0, width: 900, height: 690),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered, defer: false)
-    managerWindow.title = "Atext – Deine Textkürzel"
+    managerWindow.title = "CLIferno – Deine Textkürzel"
     managerWindow.isReleasedWhenClosed = false
     managerWindow.contentView = NSHostingView(rootView: ManagerView(model: model))
     managerWindow.center()
 
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     statusItem.button?.image = NSImage(
-      systemSymbolName: "text.cursor", accessibilityDescription: "Atext")
+      systemSymbolName: "flame", accessibilityDescription: "CLIferno")
     let menu = NSMenu()
     addMenuItem("Einträge verwalten …", action: #selector(showManager), to: menu)
     addMenuItem("Text suchen …", action: #selector(showSearch), to: menu)
@@ -62,12 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     appearanceItem.submenu = appearanceMenu
     menu.addItem(appearanceItem)
     menu.addItem(.separator())
-    addMenuItem("Atext beenden", action: #selector(quit), to: menu)
+    addMenuItem("CLIferno beenden", action: #selector(quit), to: menu)
     statusItem.menu = menu
     model.$paused.combineLatest(model.$monitorRunning).sink { [weak self] paused, running in
       self?.pauseItem.state = paused ? .on : .off
       self?.statusItem.button?.toolTip =
-        paused ? "Atext – pausiert" : (running ? "Atext – aktiv" : "Atext – Berechtigungen fehlen")
+        paused ? "CLIferno – pausiert" : (running ? "CLIferno – aktiv" : "CLIferno – Berechtigungen fehlen")
     }.store(in: &subscriptions)
     model.$appearance.sink { [weak self] current in
       self?.appearanceItems.forEach { mode, item in item.state = mode == current ? .on : .off }
@@ -220,7 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     guard model?.hasUnsavedChanges == true else { return .terminateNow }
     let alert = NSAlert()
-    alert.messageText = "Atext beenden und ungespeicherte Änderungen verwerfen?"
+    alert.messageText = "CLIferno beenden und ungespeicherte Änderungen verwerfen?"
     alert.addButton(withTitle: "Weiter bearbeiten")
     alert.addButton(withTitle: "Beenden")
     return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
@@ -231,7 +231,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let appItem = NSMenuItem()
     let appMenu = NSMenu()
     addMenuItem("Einträge verwalten …", action: #selector(showManager), to: appMenu)
-    let quitItem = addMenuItem("Atext beenden", action: #selector(quit), to: appMenu)
+    let quitItem = addMenuItem("CLIferno beenden", action: #selector(quit), to: appMenu)
     quitItem.keyEquivalent = "q"
     appItem.submenu = appMenu
     mainMenu.addItem(appItem)

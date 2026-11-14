@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-  name: "Atext",
+  name: "CLIferno",
   platforms: [.macOS(.v14)],
-  products: [.executable(name: "Atext", targets: ["Atext"])],
+  products: [.executable(name: "CLIferno", targets: ["CLIferno"])],
   targets: [
     .target(name: "SnippetCore"),
-    .executableTarget(name: "Atext", dependencies: ["SnippetCore"]),
+    .executableTarget(name: "CLIferno", dependencies: ["SnippetCore"]),
     .testTarget(name: "SnippetCoreTests", dependencies: ["SnippetCore"]),
   ],
   swiftLanguageModes: [.v5]

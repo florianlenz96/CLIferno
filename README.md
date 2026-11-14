@@ -1,6 +1,6 @@
-# Atext (CLIferno)
+# CLIferno
 
-Textkürzel für macOS: Kürzel tippen (z. B. `;gitnb`) und Atext ersetzt sie systemweit.
+Textkürzel für macOS: Kürzel tippen (z. B. `;gitnb`) und CLIferno ersetzt sie systemweit.
 
 ## Neueste Version installieren / aktualisieren
 
@@ -11,9 +11,9 @@ Jeder Push auf `main` wird von GitHub Actions getestet, gebaut und als Release
 bash scripts/install.sh
 ```
 
-Das Skript lädt `Atext.zip` aus dem Release `latest`, prüft die SHA-256-Prüfsumme,
+Das Skript lädt `CLIferno.zip` aus dem Release `latest`, prüft die SHA-256-Prüfsumme,
 signiert die App mit der lokalen Signatur `Atext Local Development` (wird beim ersten Mal
-automatisch eingerichtet), beendet ein laufendes Atext, installiert nach `/Applications`
+automatisch eingerichtet), beendet ein laufendes CLIferno, installiert nach `/Applications`
 (sonst `~/Applications`) und startet die App. Durch die gleichbleibende lokale Signatur
 bleiben die Freigaben für Bedienungshilfen und Eingabeüberwachung nach Updates erhalten.
 
@@ -31,6 +31,14 @@ Im Fenster oben rechts oder im Menüleisten-Symbol unter **Darstellung**:
 
 ```bash
 bash scripts/setup-signing.sh   # einmalig
-bash scripts/build-app.sh       # erzeugt dist/Atext.app
+bash scripts/build-app.sh       # erzeugt dist/CLIferno.app
 swift test
 ```
+
+## Früherer Name „Atext“
+
+Die App hieß früher Atext. Beim ersten Start zieht CLIferno die gespeicherten Einträge
+automatisch von `~/Library/Application Support/Atext` nach `…/CLIferno` um, und der
+Installer entfernt eine alte `Atext.app`. Bundle-ID (`dev.local.atext`) und Zertifikatsname
+(`Atext Local Development`) bleiben absichtlich gleich, damit macOS die Freigaben für
+Bedienungshilfen und Eingabeüberwachung behält.

@@ -22,7 +22,7 @@ final class SearchController: NSObject, NSSearchFieldDelegate, NSTableViewDataSo
       styleMask: [.titled, .closable, .fullSizeContentView],
       backing: .buffered, defer: false)
     super.init()
-    panel.title = "Atext – Text suchen"
+    panel.title = "CLIferno – Text suchen"
     panel.isFloatingPanel = true
     panel.level = .floating
     panel.hidesOnDeactivate = true

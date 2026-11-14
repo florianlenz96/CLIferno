@@ -82,7 +82,7 @@ struct ManagerView: View {
     .onChange(of: model.snippets) { _, _ in loadDraft() }
     .onChange(of: isDirty) { _, dirty in model.hasUnsavedChanges = dirty }
     .alert(
-      "Atext",
+      "CLIferno",
       isPresented: Binding(
         get: { model.error != nil }, set: { if !$0 { model.error = nil } }
       )
@@ -96,7 +96,7 @@ struct ManagerView: View {
   private var permissions: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack {
-        Label("Atext", systemImage: "text.cursor").font(.title2.bold())
+        Label("CLIferno", systemImage: "flame").font(.title2.bold())
         Spacer()
         Picker("Darstellung", selection: $model.appearance) {
           ForEach(AppearanceMode.allCases) { mode in
@@ -141,7 +141,7 @@ struct ManagerView: View {
               Button("Erneut prüfen", action: model.refreshPermissions)
             }
             Text(
-              "Nach einem Signaturwechsel kann der alte Eintrag aktiviert aussehen: Atext in den Bedienungshilfen entfernen und diese App neu hinzufügen. Bei Bedarf auch die Eingabeüberwachung erneuern und Atext neu starten. Gespeicherte Texte bleiben erhalten."
+              "Nach einem Signaturwechsel kann der alte Eintrag aktiviert aussehen: CLIferno in den Bedienungshilfen entfernen und diese App neu hinzufügen. Bei Bedarf auch die Eingabeüberwachung erneuern und CLIferno neu starten. Gespeicherte Texte bleiben erhalten."
             )
             .font(.caption).foregroundStyle(.secondary)
             Text(Bundle.main.bundleURL.path)
@@ -214,7 +214,7 @@ struct ManagerView: View {
         .font(.caption).foregroundStyle(.secondary)
       }
       Text(
-        "Atext sendet keine Eingabetaste. Zeilenumbrüche in eingefügten Texten können im Terminal trotzdem Befehle auslösen. Sichere Felder sind ausgenommen."
+        "CLIferno sendet keine Eingabetaste. Zeilenumbrüche in eingefügten Texten können im Terminal trotzdem Befehle auslösen. Sichere Felder sind ausgenommen."
       )
       .font(.caption).foregroundStyle(.secondary)
       HStack {

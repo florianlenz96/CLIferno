@@ -2,6 +2,7 @@
 set -euo pipefail
 umask 077
 
+# Name stays "Atext …" on purpose: a new certificate would reset macOS permissions.
 identity="Atext Local Development"
 keychain="$(security default-keychain -d user | sed 's/^[[:space:]]*"//; s/"[[:space:]]*$//')"
 if security find-identity -v -p codesigning "$keychain" | grep -F "\"$identity\"" >/dev/null; then
@@ -9,7 +10,7 @@ if security find-identity -v -p codesigning "$keychain" | grep -F "\"$identity\"
     exit 0
 fi
 
-temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/atext-signing.XXXXXX")"
+temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/cliferno-signing.XXXXXX")"
 cleanup() {
     rm -f "$temp_dir/private-key.pem" "$temp_dir/signing-key.pem" "$temp_dir/certificate.pem"
     rmdir "$temp_dir"
@@ -17,7 +18,7 @@ cleanup() {
 trap cleanup EXIT
 
 if security find-certificate -c "$identity" -p "$keychain" >"$temp_dir/certificate.pem" 2>/dev/null; then
-    printf 'Vorhandenes Atext-Zertifikat gefunden; Vertrauen für Codesignierung wird eingerichtet.\n'
+    printf 'Vorhandenes Zertifikat „Atext Local Development“ gefunden; Vertrauen für Codesignierung wird eingerichtet.\n'
 else
     openssl req -x509 -newkey rsa:2048 -noenc \
         -keyout "$temp_dir/private-key.pem" -out "$temp_dir/certificate.pem" \

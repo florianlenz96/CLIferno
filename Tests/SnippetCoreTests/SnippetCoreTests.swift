@@ -176,4 +176,32 @@ final class SnippetCoreTests: XCTestCase {
     XCTAssertEqual((folder[.posixPermissions] as? NSNumber)?.intValue, 0o700)
     XCTAssertEqual((file[.posixPermissions] as? NSNumber)?.intValue, 0o600)
   }
+
+  func testStorageDirectoryMigratesLegacyFolderOnce() throws {
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent("migration-\(UUID().uuidString)", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let legacy = root.appendingPathComponent("Atext", isDirectory: true)
+    let current = root.appendingPathComponent("CLIferno", isDirectory: true)
+    try SnippetRepository(fileURL: legacy.appendingPathComponent("snippets.json")).save([snippet])
+
+    XCTAssertEqual(SnippetRepository.storageDirectory(current: current, legacy: legacy), current)
+    XCTAssertFalse(FileManager.default.fileExists(atPath: legacy.path))
+    XCTAssertEqual(
+      try SnippetRepository(fileURL: current.appendingPathComponent("snippets.json")).load(),
+      [snippet])
+
+    // An existing current folder always wins; a reappearing legacy folder is left alone.
+    try FileManager.default.createDirectory(at: legacy, withIntermediateDirectories: true)
+    XCTAssertEqual(SnippetRepository.storageDirectory(current: current, legacy: legacy), current)
+    XCTAssertTrue(FileManager.default.fileExists(atPath: legacy.path))
+  }
+
+  func testStorageDirectoryWithoutLegacyFolderUsesCurrent() {
+    let root = FileManager.default.temporaryDirectory
+      .appendingPathComponent("migration-\(UUID().uuidString)", isDirectory: true)
+    let current = root.appendingPathComponent("CLIferno", isDirectory: true)
+    let legacy = root.appendingPathComponent("Atext", isDirectory: true)
+    XCTAssertEqual(SnippetRepository.storageDirectory(current: current, legacy: legacy), current)
+  }
 }

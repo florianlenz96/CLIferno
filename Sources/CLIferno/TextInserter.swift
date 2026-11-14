@@ -11,7 +11,7 @@ enum InsertionError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
-    case .permission: return "Zum Einfügen bitte Bedienungshilfen für Atext erlauben."
+    case .permission: return "Zum Einfügen bitte Bedienungshilfen für CLIferno erlauben."
     case .noTarget:
       return "Die Zielanwendung ist nicht mehr aktiv. Text bitte über die Suche erneut auswählen."
     case .secureInput:

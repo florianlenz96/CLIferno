@@ -37,11 +37,28 @@ public struct SnippetRepository {
   }
 
   public static var local: SnippetRepository {
-    let directory = FileManager.default.urls(
+    let support = FileManager.default.urls(
       for: .applicationSupportDirectory, in: .userDomainMask)[0]
-      .appendingPathComponent("Atext", isDirectory: true)
+    let directory = storageDirectory(
+      current: support.appendingPathComponent("CLIferno", isDirectory: true),
+      legacy: support.appendingPathComponent("Atext", isDirectory: true))
     return SnippetRepository(
       fileURL: directory.appendingPathComponent("snippets.json"), restrictsDirectory: true)
+  }
+
+  /// Moves the folder from the app's former name (Atext) to the current one, once.
+  /// If the move fails, the legacy folder keeps being used so no entries get lost.
+  static func storageDirectory(current: URL, legacy: URL) -> URL {
+    let files = FileManager.default
+    guard !files.fileExists(atPath: current.path), files.fileExists(atPath: legacy.path) else {
+      return current
+    }
+    do {
+      try files.moveItem(at: legacy, to: current)
+      return current
+    } catch {
+      return legacy
+    }
   }
 
   public func load() throws -> [Snippet]? {

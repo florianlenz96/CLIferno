@@ -201,7 +201,7 @@ final class AppModel: ObservableObject {
   func exportSnippets() {
     let panel = NSSavePanel()
     panel.allowedContentTypes = [.json]
-    panel.nameFieldStringValue = "atext-snippets.json"
+    panel.nameFieldStringValue = "cliferno-snippets.json"
     panel.message =
       "Der Export ist unverschlüsselt. Enthält ein Eintrag Zugangsdaten, die Datei nicht weitergeben."
     guard panel.runModal() == .OK, let url = panel.url else { return }

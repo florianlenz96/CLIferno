@@ -11,16 +11,21 @@ enum InsertionError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
-    case .permission: return "Zum Einfügen bitte Bedienungshilfen für CLIferno erlauben."
+    case .permission:
+      return String(localized: "To insert text, please allow Accessibility for CLIferno.")
     case .noTarget:
-      return "Die Zielanwendung ist nicht mehr aktiv. Text bitte über die Suche erneut auswählen."
+      return String(
+        localized: "The target app is no longer active. Please pick the text again from the search.")
     case .secureInput:
-      return "Sichere Tastatureingabe ist aktiv. In geschützte Felder wird nicht eingefügt."
+      return String(
+        localized: "Secure keyboard entry is active. Nothing is inserted into protected fields.")
     case .clipboard:
-      return "Die Zwischenablage konnte nicht sicher gesichert werden. Es wurde nichts eingefügt."
-    case .keyboard: return "macOS konnte die Tastatureingabe nicht erstellen."
+      return String(
+        localized: "The clipboard could not be backed up safely. Nothing was inserted.")
+    case .keyboard: return String(localized: "macOS could not create the keyboard input.")
     case .focusChanged:
-      return "Das Eingabefeld hat sich geändert. Es wurde nichts eingefügt; bitte erneut auslösen."
+      return String(
+        localized: "The input field changed. Nothing was inserted; please trigger it again.")
     }
   }
 }

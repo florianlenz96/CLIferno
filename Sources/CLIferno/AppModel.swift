@@ -14,7 +14,7 @@ final class AppModel: ObservableObject {
   @Published var paused = false {
     didSet { monitor.isPaused = paused }
   }
-  @Published var status = "Bereit"
+  @Published var status = String(localized: "Ready")
   @Published var appearance: AppearanceMode = .stored() {
     didSet {
       appearance.apply()
@@ -67,7 +67,10 @@ final class AppModel: ObservableObject {
     } catch {
       storageAvailable = false
       self.error =
-        "Einträge konnten nicht geladen werden. Die Datei wird nicht überschrieben.\n\(repository.fileURL.path)\n\(error.localizedDescription)"
+        String(
+          localized:
+            "Snippets could not be loaded. The file will not be overwritten.\n\(repository.fileURL.path)\n\(error.localizedDescription)"
+        )
     }
   }
 
@@ -95,7 +98,7 @@ final class AppModel: ObservableObject {
       snippets = updated
       selectedID = selection
       monitor.snippets = updated
-      status = "Gespeichert"
+      status = String(localized: "Saved")
       return true
     } catch {
       self.error = error.localizedDescription
@@ -139,7 +142,7 @@ final class AppModel: ObservableObject {
         error = InsertionError.noTarget.localizedDescription
         return
       }
-      prepare(snippet, target: target, actionTitle: "Einfügen") { [weak self] text in
+      prepare(snippet, target: target, actionTitle: String(localized: "Insert")) { [weak self] text in
         guard let self, let text else { return }
         self.insertRendered(
           text, title: snippet.title, deleting: count, targetPID: targetPID, focus: focus)
@@ -155,7 +158,7 @@ final class AppModel: ObservableObject {
     inserter.insert(text, deleting: count, into: targetPID, expectedFocus: focus) {
       [weak self] result in
       switch result {
-      case .success: self?.status = "Einfügen gesendet: \(title)"
+      case .success: self?.status = String(localized: "Insertion sent: \(title)")
       case .failure(let error): self?.error = error.localizedDescription
       }
     }
@@ -165,7 +168,7 @@ final class AppModel: ObservableObject {
     guard !inserter.isBusy, !isPreparingTemplate else { return }
     let template = SnippetTemplate(snippet.content)
     if !template.placeholders.isEmpty {
-      prepare(snippet, target: nil, actionTitle: "Kopieren") { [weak self] text in
+      prepare(snippet, target: nil, actionTitle: String(localized: "Copy")) { [weak self] text in
         guard let text else { return }
         self?.copyRendered(text, title: snippet.title)
       }
@@ -179,13 +182,13 @@ final class AppModel: ObservableObject {
     completion: @escaping (String?) -> Void
   ) {
     guard let openTemplate else {
-      error = "Das Platzhalterfenster ist nicht verfügbar."
+      error = String(localized: "The placeholder window is not available.")
       return
     }
     isPreparingTemplate = true
     openTemplate(snippet, target, actionTitle) { [weak self] text in
       self?.isPreparingTemplate = false
-      if text == nil { self?.status = "Platzhalter-Eingabe abgebrochen; nichts eingefügt." }
+      if text == nil { self?.status = String(localized: "Placeholder input cancelled; nothing inserted.") }
       completion(text)
     }
   }
@@ -195,7 +198,7 @@ final class AppModel: ObservableObject {
       error = InsertionError.clipboard.localizedDescription
       return
     }
-    status = "Kopiert: \(title)"
+    status = String(localized: "Copied: \(title)")
   }
 
   func exportSnippets() {
@@ -203,7 +206,10 @@ final class AppModel: ObservableObject {
     panel.allowedContentTypes = [.json]
     panel.nameFieldStringValue = "cliferno-snippets.json"
     panel.message =
-      "Der Export ist unverschlüsselt. Enthält ein Eintrag Zugangsdaten, die Datei nicht weitergeben."
+      String(
+        localized:
+          "The export is not encrypted. If a snippet contains credentials, do not share the file."
+      )
     guard panel.runModal() == .OK, let url = panel.url else { return }
     do { try SnippetRepository(fileURL: url).save(snippets) } catch {
       self.error = error.localizedDescription
@@ -218,12 +224,15 @@ final class AppModel: ObservableObject {
     do {
       guard let incoming = try SnippetRepository(fileURL: url).load() else { return }
       let alert = NSAlert()
-      alert.messageText = "Einträge aus Sicherung übernehmen?"
+      alert.messageText = String(localized: "Restore snippets from backup?")
       alert.informativeText =
-        "Die \(snippets.count) vorhandenen Einträge werden durch \(incoming.count) Einträge ersetzt. Exportiere sie zuerst, wenn du sie behalten möchtest.\n\nPrüfe den vollständigen Inhalt unten: Importierte Texte werden später ungeprüft eingefügt, Zeilenumbrüche (↵) können im Terminal Befehle ausführen."
+        String(
+          localized:
+            "The \(snippets.count) existing snippets will be replaced by \(incoming.count) snippets. Export them first if you want to keep them.\n\nReview the full content below: imported texts are later inserted as they are, and line breaks (↵) can run commands in a terminal."
+        )
       alert.accessoryView = Self.importPreview(incoming)
-      alert.addButton(withTitle: "Ersetzen")
-      alert.addButton(withTitle: "Abbrechen")
+      alert.addButton(withTitle: String(localized: "Replace"))
+      alert.addButton(withTitle: String(localized: "Cancel"))
       guard alert.runModal() == .alertFirstButtonReturn else { return }
       _ = persist(incoming, selection: incoming.first?.id)
     } catch {
@@ -235,7 +244,7 @@ final class AppModel: ObservableObject {
   private static func importPreview(_ snippets: [Snippet]) -> NSView {
     let listing = snippets.map { snippet in
       let lines = snippet.content.components(separatedBy: "\n")
-      let marker = lines.count > 1 ? "  ⚠︎ \(lines.count) Zeilen" : ""
+      let marker = lines.count > 1 ? "  " + String(localized: "⚠︎ \(lines.count) lines") : ""
       let body = lines.map { "    " + $0 }.joined(separator: " ↵\n")
       return "\(snippet.trigger)  –  \(snippet.title)\(marker)\n\(body)"
     }.joined(separator: "\n\n")

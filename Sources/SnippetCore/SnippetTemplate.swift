@@ -6,7 +6,7 @@ public enum TemplateError: LocalizedError, Equatable {
   public var errorDescription: String? {
     switch self {
     case .missingValue(let placeholder):
-      return "Bitte einen Wert für \(placeholder) eingeben."
+      return String(localized: "Please enter a value for \(placeholder).")
     }
   }
 }

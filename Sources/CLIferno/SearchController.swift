@@ -8,7 +8,7 @@ final class SearchController: NSObject, NSSearchFieldDelegate, NSTableViewDataSo
   let searchField = NSSearchField()
   private let table = NSTableView()
   private let hint = NSTextField(labelWithString: "")
-  private let actionButton = NSButton(title: "Einfügen", target: nil, action: nil)
+  private let actionButton = NSButton(title: String(localized: "Insert"), target: nil, action: nil)
   private let model: AppModel
   private var results: [Snippet] = []
   private var target: NSRunningApplication?
@@ -22,7 +22,7 @@ final class SearchController: NSObject, NSSearchFieldDelegate, NSTableViewDataSo
       styleMask: [.titled, .closable, .fullSizeContentView],
       backing: .buffered, defer: false)
     super.init()
-    panel.title = "CLIferno – Text suchen"
+    panel.title = String(localized: "CLIferno – Search Text")
     panel.isFloatingPanel = true
     panel.level = .floating
     panel.hidesOnDeactivate = true
@@ -32,7 +32,7 @@ final class SearchController: NSObject, NSSearchFieldDelegate, NSTableViewDataSo
 
     let content = NSView()
     panel.contentView = content
-    searchField.placeholderString = "Name, Kürzel oder Text suchen"
+    searchField.placeholderString = String(localized: "Search name, trigger or text")
     searchField.delegate = self
     searchField.font = .systemFont(ofSize: 20)
     searchField.sendsSearchStringImmediately = true
@@ -83,11 +83,14 @@ final class SearchController: NSObject, NSSearchFieldDelegate, NSTableViewDataSo
     searchField.stringValue = ""
     refreshResults()
     let canInsert = self.target != nil && AXIsProcessTrusted()
-    actionButton.title = canInsert ? "Einfügen" : "Kopieren"
+    actionButton.title = canInsert ? String(localized: "Insert") : String(localized: "Copy")
+    let targetName = self.target?.localizedName ?? String(localized: "application")
     hint.stringValue =
       canInsert
-      ? "↑↓ auswählen · Enter einfügen · Esc schließen\nZiel: \(self.target?.localizedName ?? "Anwendung")"
-      : "↑↓ auswählen · Enter kopieren · Esc schließen\nZum Einfügen im Zielprogramm die globale Tastenkombination verwenden."
+      ? String(localized: "↑↓ select · Enter insert · Esc close\nTarget: \(targetName)")
+      : String(
+        localized:
+          "↑↓ select · Enter copy · Esc close\nTo insert into the target app, use the global keyboard shortcut.")
     panel.center()
     NSApp.activate(ignoringOtherApps: true)
     panel.makeKeyAndOrderFront(nil)

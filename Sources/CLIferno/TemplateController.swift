@@ -47,7 +47,7 @@ final class TemplateController: NSObject, NSWindowDelegate {
       styleMask: [.titled, .closable, .fullSizeContentView],
       backing: .buffered, defer: false)
     self.panel = panel
-    panel.title = "CLIferno – Parameter"
+    panel.title = String(localized: "CLIferno – Parameters")
     panel.isReleasedWhenClosed = false
     panel.isFloatingPanel = true
     panel.level = .floating
@@ -149,7 +149,7 @@ private struct TemplateView: View {
               Text(key).font(.system(.body, design: .monospaced)).frame(
                 width: 40, alignment: .leading)
               TextField(
-                "Wert für \(key)",
+                "Value for \(key)",
                 text: Binding(
                   get: { form.values[key] ?? "" }, set: { form.values[key] = $0 })
               )
@@ -163,7 +163,7 @@ private struct TemplateView: View {
       }
       .frame(height: fieldHeight)
       VStack(alignment: .leading, spacing: 4) {
-        Text("Vorschau").font(.caption).foregroundStyle(.secondary)
+        Text("Preview").font(.caption).foregroundStyle(.secondary)
         ScrollView {
           Text(form.preview)
             .font(.system(.caption, design: .monospaced))
@@ -175,15 +175,15 @@ private struct TemplateView: View {
         .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
       }
       HStack {
-        Text("Enter bestätigen · Esc abbrechen")
+        Text("Enter confirm · Esc cancel")
           .font(.caption).foregroundStyle(.secondary)
         Image(systemName: "info.circle")
           .foregroundStyle(.secondary)
           .help(
-            "Jeder Parameter wird einmal abgefragt. Werte werden unverändert eingesetzt, nicht für die Shell maskiert. CLIferno führt keine Befehle aus; Zeilenumbrüche können im Terminal Befehle auslösen."
+            "Each parameter is asked for once. Values are inserted as typed and are not escaped for the shell. CLIferno does not run commands; line breaks can run commands in a terminal."
           )
         Spacer()
-        Button("Abbrechen", action: cancel).keyboardShortcut(.cancelAction)
+        Button("Cancel", action: cancel).keyboardShortcut(.cancelAction)
         Button(actionTitle, action: confirm)
           .keyboardShortcut(.defaultAction)
           .buttonStyle(.borderedProminent)

@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>de</string>
+    </array>
     <key>CFBundleExecutable</key>
     <string>CLIferno</string>
     <key>CFBundleIdentifier</key>
@@ -23,6 +30,6 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSInputMonitoringUsageDescription</key>
-    <string>CLIferno erkennt deine Kürzel und die Tastenkombination für das Suchfenster. Allgemeine Tastatureingaben werden nicht gespeichert.</string>
+    <string>CLIferno detects your triggers and the keyboard shortcut for the search window. General keyboard input is never stored.</string>
 </dict>
 </plist>

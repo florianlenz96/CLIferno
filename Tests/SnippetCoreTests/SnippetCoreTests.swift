@@ -140,7 +140,7 @@ final class SnippetCoreTests: XCTestCase {
     let hiddenTitle = Snippet(title: "Harmlos\u{2066}", trigger: ";test", content: "ok")
     XCTAssertThrowsError(try SnippetRules.validate(hiddenTitle, among: []))
     let allowed = Snippet(
-      title: "Erlaubt", trigger: ";ok", content: "a\tb\r\nc\nÄ 👨\u{200D}💻 €")
+      title: "Allowed", trigger: ";ok", content: "a\tb\r\nc\nÄ 👨\u{200D}💻 €")
     XCTAssertNoThrow(try SnippetRules.validate(allowed, among: []))
   }
 

@@ -14,9 +14,13 @@ public struct Snippet: Codable, Identifiable, Equatable {
   }
 
   public static let examples = [
-    Snippet(title: "Terraform formatieren", trigger: ";tfmt", content: "terraform fmt -recursive"),
-    Snippet(title: "Terraform validieren", trigger: ";tval", content: "terraform validate"),
-    Snippet(title: "Git-Status", trigger: ";gst", content: "git status --short"),
+    Snippet(
+      title: String(localized: "Format Terraform"), trigger: ";tfmt",
+      content: "terraform fmt -recursive"),
+    Snippet(
+      title: String(localized: "Validate Terraform"), trigger: ";tval",
+      content: "terraform validate"),
+    Snippet(title: String(localized: "Git Status"), trigger: ";gst", content: "git status --short"),
   ]
 }
 
@@ -31,20 +35,26 @@ public enum SnippetValidationError: LocalizedError, Equatable {
   public var errorDescription: String? {
     switch self {
     case .emptyTitle:
-      return "Bitte einen Namen eingeben."
+      return String(localized: "Please enter a name.")
     case .invalidTrigger:
-      return
-        "Kürzel müssen mit ; beginnen, danach Buchstaben, Ziffern, - oder _ enthalten und 2 bis 64 Zeichen lang sein."
+      return String(
+        localized:
+          "Triggers must start with ;, followed by letters, digits, - or _, and be 2 to 64 characters long."
+      )
     case .emptyContent:
-      return "Bitte einen einzufügenden Text eingeben."
+      return String(localized: "Please enter the text to insert.")
     case .duplicateID:
-      return "Die Datei enthält doppelte Eintrags-IDs."
+      return String(localized: "The file contains duplicate snippet IDs.")
     case .conflictingTrigger(let trigger):
-      return
-        "Das Kürzel überschneidet sich mit \(trigger). Kürzel dürfen nicht identisch oder der Anfang eines anderen Kürzels sein."
+      return String(
+        localized:
+          "The trigger overlaps with \(trigger). Triggers must not be identical to, or the start of, another trigger."
+      )
     case .unsafeCharacter(let field, let codePoint):
-      return
-        "\(field) enthält das unsichtbare Steuerzeichen \(codePoint). Solche Zeichen können eingefügte Befehle verschleiern und sind nicht erlaubt."
+      return String(
+        localized:
+          "\(field) contains the invisible control character \(codePoint). Such characters can disguise inserted commands and are not allowed."
+      )
     }
   }
 }
@@ -85,8 +95,8 @@ public enum SnippetRules {
       throw SnippetValidationError.invalidTrigger
     }
     guard !snippet.content.isEmpty else { throw SnippetValidationError.emptyContent }
-    try checkCharacters(snippet.title, field: "Der Name")
-    try checkCharacters(snippet.content, field: "Der einzufügende Text")
+    try checkCharacters(snippet.title, field: String(localized: "The name"))
+    try checkCharacters(snippet.content, field: String(localized: "The text to insert"))
     for other in snippets where other.id != snippet.id {
       if snippet.trigger.hasPrefix(other.trigger) || other.trigger.hasPrefix(snippet.trigger) {
         throw SnippetValidationError.conflictingTrigger(other.trigger)

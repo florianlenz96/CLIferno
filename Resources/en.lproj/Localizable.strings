@@ -1,0 +1,2 @@
+/* English is the development language: the code's string literals are the English text,
+   so this file stays empty. It exists so macOS lists English as a supported localization. */

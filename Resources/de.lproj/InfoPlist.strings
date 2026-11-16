@@ -1,0 +1,3 @@
+/* German translation of user-facing Info.plist values. */
+
+"NSInputMonitoringUsageDescription" = "CLIferno erkennt deine Kürzel und die Tastenkombination für das Suchfenster. Allgemeine Tastatureingaben werden nicht gespeichert.";

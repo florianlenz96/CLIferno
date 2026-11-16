@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       contentRect: NSRect(x: 0, y: 0, width: 900, height: 690),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered, defer: false)
-    managerWindow.title = "CLIferno – Deine Textkürzel"
+    managerWindow.title = String(localized: "CLIferno – Your Text Shortcuts")
     managerWindow.isReleasedWhenClosed = false
     managerWindow.contentView = NSHostingView(rootView: ManagerView(model: model))
     managerWindow.center()
@@ -48,26 +48,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     statusItem.button?.image = NSImage(
       systemSymbolName: "flame", accessibilityDescription: "CLIferno")
     let menu = NSMenu()
-    addMenuItem("Einträge verwalten …", action: #selector(showManager), to: menu)
-    addMenuItem("Text suchen …", action: #selector(showSearch), to: menu)
+    addMenuItem(String(localized: "Manage Snippets …"), action: #selector(showManager), to: menu)
+    addMenuItem(String(localized: "Search Text …"), action: #selector(showSearch), to: menu)
     menu.addItem(.separator())
-    pauseItem = addMenuItem("Ersetzung pausieren", action: #selector(togglePause), to: menu)
+    pauseItem = addMenuItem(String(localized: "Pause Expansion"), action: #selector(togglePause), to: menu)
     let appearanceMenu = NSMenu()
     for mode in AppearanceMode.allCases {
       let item = addMenuItem(mode.title, action: #selector(selectAppearance(_:)), to: appearanceMenu)
       item.representedObject = mode.rawValue
       appearanceItems[mode] = item
     }
-    let appearanceItem = NSMenuItem(title: "Darstellung", action: nil, keyEquivalent: "")
+    let appearanceItem = NSMenuItem(title: String(localized: "Appearance"), action: nil, keyEquivalent: "")
     appearanceItem.submenu = appearanceMenu
     menu.addItem(appearanceItem)
     menu.addItem(.separator())
-    addMenuItem("CLIferno beenden", action: #selector(quit), to: menu)
+    addMenuItem(String(localized: "Quit CLIferno"), action: #selector(quit), to: menu)
     statusItem.menu = menu
     model.$paused.combineLatest(model.$monitorRunning).sink { [weak self] paused, running in
       self?.pauseItem.state = paused ? .on : .off
       self?.statusItem.button?.toolTip =
-        paused ? "CLIferno – pausiert" : (running ? "CLIferno – aktiv" : "CLIferno – Berechtigungen fehlen")
+        paused
+        ? String(localized: "CLIferno – paused")
+        : (running
+          ? String(localized: "CLIferno – active")
+          : String(localized: "CLIferno – permissions missing"))
     }.store(in: &subscriptions)
     model.$appearance.sink { [weak self] current in
       self?.appearanceItems.forEach { mode, item in item.state = mode == current ? .on : .off }
@@ -100,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
           Notification(name: NSControl.textDidChangeNotification))
         precondition(searchController.numberOfRows(in: NSTableView()) == 0, "Empty search failed")
         precondition(
-          NSApp.mainMenu?.items.contains(where: { $0.title == "Bearbeiten" }) == true,
+          NSApp.mainMenu?.items.contains(where: { $0.title == String(localized: "Edit") }) == true,
           "Standard text editing menu is missing")
         let originalAppearance = UserDefaults.standard.string(forKey: AppearanceMode.defaultsKey)
         for mode in [AppearanceMode.dark, .light, .system] {
@@ -121,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       content:
         "git checkout main && git pull && git checkout -b $1 && git push --set-upstream origin $1")
     var completed = false
-    templateController.show(snippet: snippet, target: nil, actionTitle: "Einfügen") { text in
+    templateController.show(snippet: snippet, target: nil, actionTitle: "Insert") { text in
       precondition(
         text
           == "git checkout main && git pull && git checkout -b feature/login && git push --set-upstream origin feature/login",
@@ -148,7 +152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       templateController.confirm()
       precondition(completed && !templateController.isPresenting, "Confirmation did not finish")
       var cancelled = false
-      templateController.show(snippet: snippet, target: nil, actionTitle: "Einfügen") { text in
+      templateController.show(snippet: snippet, target: nil, actionTitle: "Insert") { text in
         precondition(text == nil, "Cancellation returned text to insert")
         cancelled = true
       }
@@ -157,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       let manyParameters = Snippet(
         title: "Multiple parameters", trigger: ";many",
         content: (1...12).map { "$\($0)" }.joined(separator: " "))
-      templateController.show(snippet: manyParameters, target: nil, actionTitle: "Einfügen") {
+      templateController.show(snippet: manyParameters, target: nil, actionTitle: "Insert") {
         text in
         precondition(text == nil, "Multi-parameter cancellation returned text")
       }
@@ -220,9 +224,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     guard model?.hasUnsavedChanges == true else { return .terminateNow }
     let alert = NSAlert()
-    alert.messageText = "CLIferno beenden und ungespeicherte Änderungen verwerfen?"
-    alert.addButton(withTitle: "Weiter bearbeiten")
-    alert.addButton(withTitle: "Beenden")
+    alert.messageText = String(localized: "Quit CLIferno and discard unsaved changes?")
+    alert.addButton(withTitle: String(localized: "Keep Editing"))
+    alert.addButton(withTitle: String(localized: "Quit"))
     return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
   }
 
@@ -230,21 +234,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let mainMenu = NSMenu()
     let appItem = NSMenuItem()
     let appMenu = NSMenu()
-    addMenuItem("Einträge verwalten …", action: #selector(showManager), to: appMenu)
-    let quitItem = addMenuItem("CLIferno beenden", action: #selector(quit), to: appMenu)
+    addMenuItem(String(localized: "Manage Snippets …"), action: #selector(showManager), to: appMenu)
+    let quitItem = addMenuItem(String(localized: "Quit CLIferno"), action: #selector(quit), to: appMenu)
     quitItem.keyEquivalent = "q"
     appItem.submenu = appMenu
     mainMenu.addItem(appItem)
 
-    let editItem = NSMenuItem(title: "Bearbeiten", action: nil, keyEquivalent: "")
-    let editMenu = NSMenu(title: "Bearbeiten")
+    let editTitle = String(localized: "Edit")
+    let editItem = NSMenuItem(title: editTitle, action: nil, keyEquivalent: "")
+    let editMenu = NSMenu(title: editTitle)
     for (title, action, key, modifiers) in [
-      ("Rückgängig", Selector(("undo:")), "z", NSEvent.ModifierFlags.command),
-      ("Wiederholen", Selector(("redo:")), "z", [.command, .shift]),
-      ("Ausschneiden", #selector(NSText.cut(_:)), "x", .command),
-      ("Kopieren", #selector(NSText.copy(_:)), "c", .command),
-      ("Einfügen", #selector(NSText.paste(_:)), "v", .command),
-      ("Alles auswählen", #selector(NSText.selectAll(_:)), "a", .command),
+      (String(localized: "Undo"), Selector(("undo:")), "z", NSEvent.ModifierFlags.command),
+      (String(localized: "Redo"), Selector(("redo:")), "z", [.command, .shift]),
+      (String(localized: "Cut"), #selector(NSText.cut(_:)), "x", .command),
+      (String(localized: "Copy"), #selector(NSText.copy(_:)), "c", .command),
+      (String(localized: "Paste"), #selector(NSText.paste(_:)), "v", .command),
+      (String(localized: "Select All"), #selector(NSText.selectAll(_:)), "a", .command),
     ] {
       let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
       item.keyEquivalentModifierMask = modifiers

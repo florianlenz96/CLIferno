@@ -22,29 +22,29 @@ jobs:
       - name: Tests
         run: swift test
 
-      - name: App bauen (ad hoc signiert)
+      - name: Build app (ad hoc signed)
         env:
           CLIFERNO_SIGNING_IDENTITY: "-"
           CLIFERNO_BUILD_VERSION: ${{ github.run_number }}
         run: bash scripts/build-app.sh
 
-      - name: Smoke-Test
+      - name: Smoke test
         timeout-minutes: 2
         continue-on-error: true
         run: dist/CLIferno.app/Contents/MacOS/CLIferno --smoke-test
 
-      - name: Paketieren
+      - name: Package
         run: |
           ditto -c -k --keepParent dist/CLIferno.app dist/CLIferno.zip
           shasum -a 256 dist/CLIferno.zip | awk '{print $1}' > dist/CLIferno.zip.sha256
           cp scripts/setup-signing.sh scripts/install.sh dist/
 
-      - name: Rolling-Release "latest" aktualisieren
+      - name: Update rolling release "latest"
         env:
           GH_TOKEN: ${{ github.token }}
-          TITLE: "CLIferno – neuester Stand (Build ${{ github.run_number }})"
+          TITLE: "CLIferno – latest (build ${{ github.run_number }})"
         run: |
-          notes="Automatisch gebaut aus ${GITHUB_SHA::7}. Installieren/aktualisieren: \`bash scripts/install.sh\`"
+          notes="Built automatically from ${GITHUB_SHA::7}. Install/update: \`bash scripts/install.sh\`"
           assets=(dist/CLIferno.zip dist/CLIferno.zip.sha256 dist/setup-signing.sh dist/install.sh)
           if gh release view latest >/dev/null 2>&1; then
             # Replace assets in place; the previous build stays downloadable until then.

@@ -12,7 +12,7 @@ struct ManagerView: View {
     let info = Bundle.main.infoDictionary
     let version = info?["CFBundleShortVersionString"] as? String ?? "dev"
     let build = info?["CFBundleVersion"] as? String ?? "–"
-    return "Version \(version) (Build \(build))"
+    return String(localized: "Version \(version) (Build \(build))")
   }()
 
   private var results: [Snippet] { SnippetRules.search(model.snippets, query: query) }
@@ -27,7 +27,7 @@ struct ManagerView: View {
       permissions
       HSplitView {
         VStack(spacing: 10) {
-          TextField("Einträge suchen", text: $query)
+          TextField("Search snippets", text: $query)
             .textFieldStyle(.roundedBorder)
             .padding([.horizontal, .top], 12)
           List(selection: Binding(get: { model.selectedID }, set: select)) {
@@ -42,12 +42,12 @@ struct ManagerView: View {
             }
           }
           HStack {
-            Button(action: newSnippet) { Label("Neu", systemImage: "plus") }
+            Button(action: newSnippet) { Label("New", systemImage: "plus") }
               .keyboardShortcut("n", modifiers: .command)
               .disabled(!model.storageAvailable)
             Spacer()
             Button(action: deleteSnippet) { Image(systemName: "trash") }
-              .help("Ausgewählten Eintrag löschen")
+              .help("Delete selected snippet")
               .disabled(model.selectedID == nil || !model.storageAvailable)
           }
           .padding(12)
@@ -59,8 +59,8 @@ struct ManagerView: View {
             .frame(minWidth: 430, maxWidth: .infinity, maxHeight: .infinity)
         } else {
           ContentUnavailableView(
-            "Deine häufigsten Texte", systemImage: "text.badge.plus",
-            description: Text("Lege einen Eintrag an oder wähle einen aus der Liste.")
+            "Your most-used texts", systemImage: "text.badge.plus",
+            description: Text("Create a snippet or pick one from the list.")
           )
           .frame(minWidth: 430, maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -71,8 +71,8 @@ struct ManagerView: View {
         Spacer()
         Text(Self.versionText).font(.caption).foregroundStyle(.tertiary)
           .textSelection(.enabled)
-        Button("Importieren", action: model.importSnippets).disabled(!model.storageAvailable)
-        Button("Exportieren", action: model.exportSnippets).disabled(!model.storageAvailable)
+        Button("Import", action: model.importSnippets).disabled(!model.storageAvailable)
+        Button("Export", action: model.exportSnippets).disabled(!model.storageAvailable)
       }
       .padding(12)
     }
@@ -98,7 +98,7 @@ struct ManagerView: View {
       HStack {
         Label("CLIferno", systemImage: "flame").font(.title2.bold())
         Spacer()
-        Picker("Darstellung", selection: $model.appearance) {
+        Picker("Appearance", selection: $model.appearance) {
           ForEach(AppearanceMode.allCases) { mode in
             Label(mode.title, systemImage: mode.symbolName).tag(mode)
           }
@@ -106,18 +106,18 @@ struct ManagerView: View {
         .pickerStyle(.segmented)
         .labelsHidden()
         .fixedSize()
-        .help("Darstellung: Hell, Dunkel oder wie macOS")
-        Toggle("Ersetzung pausieren", isOn: $model.paused).toggleStyle(.switch)
+        .help("Appearance: light, dark or match macOS")
+        Toggle("Pause Expansion", isOn: $model.paused).toggleStyle(.switch)
       }
-      Text("Kürzel direkt tippen oder Ctrl + Option + Leertaste zum Suchen drücken.")
+      Text("Type a trigger directly, or press Control + Option + Space to search.")
         .foregroundStyle(.secondary)
       if !model.storageAvailable {
         HStack {
           Label(
-            "Speicherfehler: Änderungen sind gesperrt.", systemImage: "exclamationmark.triangle"
+            "Storage error: changes are locked.", systemImage: "exclamationmark.triangle"
           )
           .foregroundStyle(.red)
-          Button("Erneut laden", action: model.reload)
+          Button("Reload", action: model.reload)
         }
       }
       if !model.monitorRunning {
@@ -126,22 +126,24 @@ struct ManagerView: View {
           VStack(alignment: .leading, spacing: 6) {
             Text(
               model.accessibilityGranted
-                ? "Bedienungshilfen sind freigegeben, aber der Tastaturmonitor konnte nicht starten."
-                : "macOS hat Bedienungshilfen für diese App-Version noch nicht freigegeben."
+                ? String(
+                  localized: "Accessibility is granted, but the keyboard monitor could not start.")
+                : String(
+                  localized: "macOS has not yet granted Accessibility to this version of the app.")
             )
             .font(.callout.bold())
             HStack {
               permissionButton(
-                "Bedienungshilfen", granted: model.accessibilityGranted,
+                "Accessibility", granted: model.accessibilityGranted,
                 pane: "Privacy_Accessibility")
               permissionButton(
-                "Eingabeüberwachung", granted: model.inputMonitoringGranted,
+                "Input Monitoring", granted: model.inputMonitoringGranted,
                 pane: "Privacy_ListenEvent")
-              Button("Anfordern", action: model.requestPermissions)
-              Button("Erneut prüfen", action: model.refreshPermissions)
+              Button("Request", action: model.requestPermissions)
+              Button("Check Again", action: model.refreshPermissions)
             }
             Text(
-              "Nach einem Signaturwechsel kann der alte Eintrag aktiviert aussehen: CLIferno in den Bedienungshilfen entfernen und diese App neu hinzufügen. Bei Bedarf auch die Eingabeüberwachung erneuern und CLIferno neu starten. Gespeicherte Texte bleiben erhalten."
+              "After a signature change, the old entry may still look enabled: remove CLIferno from Accessibility and add this app again. If needed, renew Input Monitoring as well and restart CLIferno. Saved texts are kept."
             )
             .font(.caption).foregroundStyle(.secondary)
             Text(Bundle.main.bundleURL.path)
@@ -154,8 +156,8 @@ struct ManagerView: View {
       } else {
         Label(
           model.paused
-            ? "Automatische Ersetzung pausiert; Suche bleibt verfügbar."
-            : "Systemweite Kürzel aktiv",
+            ? String(localized: "Automatic expansion paused; search stays available.")
+            : String(localized: "System-wide triggers active"),
           systemImage: model.paused ? "pause.circle" : "checkmark.circle"
         )
         .font(.caption)
@@ -166,7 +168,7 @@ struct ManagerView: View {
     .background(.bar)
   }
 
-  private func permissionButton(_ title: String, granted: Bool, pane: String) -> some View {
+  private func permissionButton(_ title: LocalizedStringKey, granted: Bool, pane: String) -> some View {
     Button {
       model.openPermissionSettings(pane)
     } label: {
@@ -179,29 +181,29 @@ struct ManagerView: View {
       HStack {
         Text(
           model.snippets.contains(where: { $0.id == snippet.id })
-            ? "Eintrag bearbeiten" : "Neuer Eintrag"
+            ? String(localized: "Edit Snippet") : String(localized: "New Snippet")
         )
         .font(.title2.bold())
         Spacer()
-        if isDirty { Text("Nicht gespeichert").font(.caption).foregroundStyle(.secondary) }
+        if isDirty { Text("Not saved").font(.caption).foregroundStyle(.secondary) }
       }
       VStack(alignment: .leading, spacing: 6) {
         Text("Name").font(.headline)
-        TextField("Zum Beispiel: Terraform formatieren", text: draftBinding(\.title))
+        TextField("For example: Format Terraform", text: draftBinding(\.title))
           .textFieldStyle(.roundedBorder)
       }
       VStack(alignment: .leading, spacing: 6) {
-        Text("Kürzel").font(.headline)
+        Text("Trigger").font(.headline)
         TextField(";tfmt", text: draftBinding(\.trigger))
           .textFieldStyle(.roundedBorder)
           .font(.system(.body, design: .monospaced))
         Text(
-          "Beginnt mit ; und wird sofort nach dem letzten Zeichen ersetzt. Groß-/Kleinschreibung zählt."
+          "Starts with ; and is replaced as soon as you type its last character. Case-sensitive."
         )
         .font(.caption).foregroundStyle(.secondary)
       }
       VStack(alignment: .leading, spacing: 6) {
-        Text("Einzufügender Text").font(.headline)
+        Text("Text to Insert").font(.headline)
         TextEditor(text: draftBinding(\.content))
           .font(.system(.body, design: .monospaced))
           .padding(6)
@@ -209,22 +211,22 @@ struct ManagerView: View {
           .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
           .frame(minHeight: 140)
         Text(
-          "Platzhalter: $1, $2 usw. werden vor dem Einfügen abgefragt. $$1 fügt wörtlich $1 ein; $$ ergibt ein Dollarzeichen."
+          "Placeholders: $1, $2 etc. are asked for before inserting. $$1 inserts a literal $1; $$ gives a dollar sign."
         )
         .font(.caption).foregroundStyle(.secondary)
       }
       Text(
-        "CLIferno sendet keine Eingabetaste. Zeilenumbrüche in eingefügten Texten können im Terminal trotzdem Befehle auslösen. Sichere Felder sind ausgenommen."
+        "CLIferno never presses Return. Line breaks in inserted texts can still run commands in a terminal. Secure fields are excluded."
       )
       .font(.caption).foregroundStyle(.secondary)
       HStack {
-        Button("Text kopieren") { model.copy(snippet) }.disabled(snippet.content.isEmpty)
+        Button("Copy Text") { model.copy(snippet) }.disabled(snippet.content.isEmpty)
         Spacer()
-        Button("Verwerfen") {
+        Button("Discard") {
           creatingNew = false
           loadDraft()
         }.disabled(!isDirty)
-        Button("Speichern") { _ = model.save(snippet) }
+        Button("Save") { _ = model.save(snippet) }
           .keyboardShortcut("s", modifiers: .command)
           .buttonStyle(.borderedProminent)
           .disabled(!isDirty || !model.storageAvailable)
@@ -248,9 +250,9 @@ struct ManagerView: View {
   private func allowDiscard() -> Bool {
     guard isDirty else { return true }
     let alert = NSAlert()
-    alert.messageText = "Ungespeicherte Änderungen verwerfen?"
-    alert.addButton(withTitle: "Weiter bearbeiten")
-    alert.addButton(withTitle: "Verwerfen")
+    alert.messageText = String(localized: "Discard unsaved changes?")
+    alert.addButton(withTitle: String(localized: "Keep Editing"))
+    alert.addButton(withTitle: String(localized: "Discard"))
     return alert.runModal() == .alertSecondButtonReturn
   }
 
@@ -272,10 +274,11 @@ struct ManagerView: View {
       let snippet = model.snippets.first(where: { $0.id == id })
     else { return }
     let alert = NSAlert()
-    alert.messageText = "„\(snippet.title)“ löschen?"
-    alert.informativeText = "Der Eintrag und ungespeicherte Änderungen daran werden entfernt."
-    alert.addButton(withTitle: "Abbrechen")
-    alert.addButton(withTitle: "Löschen")
+    alert.messageText = String(localized: "Delete “\(snippet.title)”?")
+    alert.informativeText = String(
+      localized: "The snippet and any unsaved changes to it will be removed.")
+    alert.addButton(withTitle: String(localized: "Cancel"))
+    alert.addButton(withTitle: String(localized: "Delete"))
     if alert.runModal() == .alertSecondButtonReturn {
       creatingNew = false
       model.delete(id)

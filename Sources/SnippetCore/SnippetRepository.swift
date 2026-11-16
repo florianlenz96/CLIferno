@@ -7,10 +7,12 @@ public enum RepositoryError: LocalizedError {
   public var errorDescription: String? {
     switch self {
     case .unsupportedVersion(let version):
-      return "Das Dateiformat \(version) wird von dieser App nicht unterstützt."
+      return String(localized: "File format \(version) is not supported by this app.")
     case .fileTooLarge(let bytes):
-      return
-        "Die Datei ist mit \(bytes / 1_048_576) MB zu groß (maximal \(SnippetRepository.maxFileSize / 1_048_576) MB)."
+      return String(
+        localized:
+          "The file is too large at \(bytes / 1_048_576) MB (maximum \(SnippetRepository.maxFileSize / 1_048_576) MB)."
+      )
     }
   }
 }

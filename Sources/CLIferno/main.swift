@@ -3,6 +3,20 @@ import Combine
 import SnippetCore
 import SwiftUI
 
+/// Snippets are mostly shell commands: smart quotes (`"$1"` → `„$1“`), smart dashes (`--` → `—`)
+/// and autocorrect would silently break them. These keys override the system-wide setting for
+/// CLIferno only and are read by every text view and text field editor the app creates.
+private func disableAutomaticTextSubstitutions(in defaults: UserDefaults = .standard) {
+  for key in [
+    "NSAutomaticQuoteSubstitutionEnabled", "NSAutomaticDashSubstitutionEnabled",
+    "NSAutomaticTextReplacementEnabled", "NSAutomaticSpellingCorrectionEnabled",
+    "NSAutomaticPeriodSubstitutionEnabled", "NSAutomaticCapitalizationEnabled",
+    "WebAutomaticQuoteSubstitutionEnabled", "WebAutomaticDashSubstitutionEnabled",
+  ] {
+    defaults.set(false, forKey: key)
+  }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private var model: AppModel!
   private var managerWindow: NSWindow!
@@ -15,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var smokeDirectory: URL?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    disableAutomaticTextSubstitutions()
     let smokeTest = CommandLine.arguments.contains("--smoke-test")
     if smokeTest {
       let directory = FileManager.default.temporaryDirectory.appendingPathComponent(

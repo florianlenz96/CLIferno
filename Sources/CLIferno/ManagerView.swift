@@ -204,8 +204,7 @@ struct ManagerView: View {
       }
       VStack(alignment: .leading, spacing: 6) {
         Text("Text to Insert").font(.headline)
-        TextEditor(text: draftBinding(\.content))
-          .font(.system(.body, design: .monospaced))
+        PlainTextEditor(text: draftBinding(\.content))
           .padding(6)
           .background(Color(nsColor: .textBackgroundColor))
           .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
